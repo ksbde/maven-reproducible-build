@@ -1,71 +1,125 @@
-import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.BuildType
+import jetbrains.buildServer.configs.kotlin.DslContext
+import jetbrains.buildServer.configs.kotlin.Project
+import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerRegistryConnections
 import jetbrains.buildServer.configs.kotlin.buildSteps.DockerCommandStep
 import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.maven
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.project
+import jetbrains.buildServer.configs.kotlin.toId
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
-import simple_service.MavenPackage
-import simple_service.Params
-import simple_service.configurePackage
-import simple_service.ref
+import jetbrains.buildServer.configs.kotlin.version
+import shared.Artifacts
+import shared.Params
+import shared.addDockerRegistry
+import shared.configurePackages
+import shared.depPackage
+import shared.ref
 
 
 version = "2025.07"
 
-// Root project
 project {
+
     params {
-        text(Params.teamcityUiReadOnly, "true")
-        text(Params.dockerImageName, ref(Params.packageName), "Docker Image Name")
-        text(Params.dockerImageTag, ref(Params.packageVersion), "Docker Image Rag")
-        text(Params.packageReleasenotesUrl,
+        text(Params.TEAMCITY_UI_READONLY, "true")
+
+        text(
+            Params.DOCKER_IMAGE_NAME,
+            ref(Params.PACKAGE_NAME),
+            "Docker Image Name",
+        )
+        text(
+            Params.DOCKER_IMAGE_TAG,
+            ref(Params.PACKAGE_VERSION),
+            "Docker Image Rag",
+        )
+
+        text(
+            Params.DOCKER_REGISTRY_REPO_HOST_AND_NAME,
+            "whitelokki/",
+            "Docker Repo Host",
+        )
+
+        text(
+            Params.DOCKER_IMAGE_FULL_PATH,
+            ref(Params.DOCKER_REGISTRY_REPO_HOST_AND_NAME) +
+                ref(Params.DOCKER_IMAGE_NAME) + ":" +
+                ref(Params.DOCKER_IMAGE_TAG),
+        )
+
+        text(
+            Params.PACKAGE_RELEASE_NOTES_URL,
             "https://raw.githubusercontent.com/kubernetes/kubernetes/refs/heads/master/README.md",
-        "Package Release Notes")
+            "Package Release Notes",
+        )
     }
 
-
-    // Subprojects
     subProject {
         this.id("Build")
         this.name = "Build"
 
+        val dockerHubId =
+            addDockerRegistry(
+                name = "DockerHubPersonal",
+                userNameRef = "whitelokki@gmail.com",
+                passwordRef = "credentialsJSON:e01258ea-5518-406c-9ed1-e843713207ec",
+                url = "https://docker.io",
+            )
 
-        val makePackage = MavenPackage(
-            buildOnHost("Build Package"),
-            Params.packageVersion,
-            Params.packageVersion
-        )
-        val build = buildInDocker("Dockerfile", makePackage)
+        val jarPackage =
+            Artifacts(
+                buildOnHost("Build Package"),
+                Params.PACKAGE_NAME,
+                Params.PACKAGE_VERSION,
+            )
+        val dockerImage =
+            Artifacts(
+                buildInDocker("Dockerfile", dockerHubId, jarPackage),
+                Params.DOCKER_IMAGE_NAME,
+                Params.DOCKER_IMAGE_TAG,
+            )
 
-//        buildTypesOrder = listOf(makePackage, build)
+        collectArtifacts("Artifacts", jarPackage, dockerImage)
     }
     subProject {
         this.id("Deploy")
         this.name = "Deploy"
     }
-
-
 }
 
-fun Project.buildInDocker(id: String, packageName: MavenPackage) = BuildType {
+fun Project.buildInDocker(
+    id: String,
+    dockerHubId: String,
+    jarPackage: Artifacts,
+) = BuildType {
     this.id(id)
     this.name = "Build"
+
+    params {
+        text(Params.TEAMCITY_FORCE_CHECKOUT_ALL_REFS, "true")
+    }
+
+    depPackage(jarPackage)
+
     requirements {
         equals("docker.server.osType", "linux")
         equals("teamcity.agent.jvm.os.name", "Linux")
     }
 
-    buildDockerImage(id, packageName)
+    buildDockerImage(id, dockerHubId)
 }.also { buildType(it) }
 
-fun BuildType.buildDockerImage(buildConfigurationId: String, packageName: MavenPackage) {
-
+fun BuildType.buildDockerImage(
+    buildConfigurationId: String,
+    dockerHubId: String,
+) {
     this.id(buildConfigurationId)
     this.name = "Build Docker Image"
 
-    configurePackage(packageName)
     vcs {
-        root(DslContext.settingsRoot, ". => build_dir")
+        root(DslContext.settingsRoot)
         cleanCheckout = true
     }
 
@@ -74,34 +128,48 @@ fun BuildType.buildDockerImage(buildConfigurationId: String, packageName: MavenP
             branchFilter = "+:*"
         }
     }
-
-    steps {
-        dockerCommand {
-            name = "build docker"
-            id = "DockerCommand"
-            commandType = build {
-                source = file {
-                    path = "Dockerfile"
+    features {
+        dockerRegistryConnections {
+            enabled = true
+            loginToRegistry =
+                on {
+                    dockerRegistryId = dockerHubId
                 }
-                contextDir = "build_dir"
-                platform = DockerCommandStep.ImagePlatform.Linux
-                namesAndTags = ref(Params.packageName)+":"+ref(Params.packageVersion)
-            }
         }
     }
-
+    steps {
+        dockerCommand {
+            name = "Build docker image"
+            commandType =
+                build {
+                    source =
+                        file {
+                            path = "Dockerfile"
+                        }
+                    contextDir = "."
+                    platform = DockerCommandStep.ImagePlatform.Linux
+                    namesAndTags = ref(Params.DOCKER_IMAGE_FULL_PATH)
+                }
+        }
+        dockerCommand {
+            name = "Push Docker Image"
+            commandType =
+                push {
+                    namesAndTags = ref(Params.DOCKER_IMAGE_FULL_PATH)
+                }
+        }
+    }
 }
 
+fun Project.buildOnHost(id: String) =
+    BuildType {
+        this.id(id.toId())
+        this.name = id
 
-fun Project.buildOnHost(id: String) = BuildType {
-    this.id(id.toId())
-    this.name = id
-
-    buildOnHost(id)
-}.also { buildType(it) }
+        buildOnHost(id)
+    }.also { buildType(it) }
 
 fun BuildType.buildOnHost(id: String) {
-
     this.id(id.toId())
     this.name = id
 
@@ -110,28 +178,44 @@ fun BuildType.buildOnHost(id: String) {
         cleanCheckout = true
     }
 
-    buildNumberPattern = ref(Params.packageVersion)
-
     steps {
         maven {
             name = "Build package"
             goals = "clean package"
-            runnerArgs = "-Drelease.notes.url=${ref(Params.packageReleasenotesUrl)}"
-            jdkHome = ref(Params.requiredJavaVersion)
+            runnerArgs = "-D${Params.PACKAGE_RELEASE_NOTES_URL}=${ref(Params.PACKAGE_RELEASE_NOTES_URL)}"
+            jdkHome = ref(Params.REQUIRED_JAVA_VERSION)
         }
         script {
             name = "Publish checksums"
-            scriptContent = """
-                sha256sum */*.jar > checksums.txt
-            """.trimIndent()
+            scriptContent =
+                """
+                sha256sum */*.jar > checksums_${ref(Params.PACKAGE_VERSION)}.txt
+                """.trimIndent()
         }
     }
 
-    artifactRules = """
+    artifactRules =
+        """
         **/**.jar
-        **/checksums.txt => ${ref(Params.packageVersion)}_checksums.txt
+        **/checksums_*.txt
         **/release-notes/** => 
-        **/site/** => javadoc_${ref(Params.packageVersion)}.zip
-        target/** => release_${ref(Params.packageVersion)}.tar.gz
-    """.trimIndent()
+        **/site/** => javadoc_${ref(Params.PACKAGE_VERSION)}.zip
+        target/** => release_${ref(Params.PACKAGE_VERSION)}.tar.gz
+        """.trimIndent()
 }
+
+fun Project.collectArtifacts(
+    id: String,
+    jarPackage: Artifacts,
+    dockerImage: Artifacts,
+) = BuildType {
+    this.id(id.toId())
+    this.name = id
+
+    configurePackages(jarPackage, dockerImage)
+
+    artifactRules =
+        """
+        pkg => pkg
+        """.trimIndent()
+}.also { buildType(it) }
