@@ -1,4 +1,5 @@
 import jetbrains.buildServer.configs.kotlin.BuildType
+import jetbrains.buildServer.configs.kotlin.CheckoutMode
 import jetbrains.buildServer.configs.kotlin.DslContext
 import jetbrains.buildServer.configs.kotlin.Project
 import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerRegistryConnections
@@ -123,11 +124,6 @@ fun BuildType.buildDockerImage(
         cleanCheckout = true
     }
 
-    triggers {
-        vcs {
-            branchFilter = "+:*"
-        }
-    }
     features {
         dockerRegistryConnections {
             enabled = true
@@ -211,6 +207,17 @@ fun Project.collectArtifacts(
 ) = BuildType {
     this.id(id.toId())
     this.name = id
+
+    vcs {
+        root(DslContext.settingsRoot)
+        cleanCheckout = true
+    }
+
+    triggers {
+        vcs {
+            branchFilter = "+:*"
+        }
+    }
 
     configurePackages(jarPackage, dockerImage)
 
