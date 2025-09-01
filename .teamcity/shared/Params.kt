@@ -52,8 +52,8 @@ fun BuildType.configurePackages(
         }
         dependency(dockerImage.build) {
             snapshot {
-                onDependencyCancel = FailureAction.CANCEL
-                onDependencyFailure = FailureAction.FAIL_TO_START
+                onDependencyCancel = FailureAction.ADD_PROBLEM
+                onDependencyFailure = FailureAction.ADD_PROBLEM
                 synchronizeRevisions = true
             }
         }

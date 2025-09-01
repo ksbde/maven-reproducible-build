@@ -1,6 +1,4 @@
 import jetbrains.buildServer.configs.kotlin.BuildType
-import jetbrains.buildServer.configs.kotlin.CheckoutMode
-import jetbrains.buildServer.configs.kotlin.DslContext
 import jetbrains.buildServer.configs.kotlin.Project
 import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerRegistryConnections
 import jetbrains.buildServer.configs.kotlin.buildSteps.DockerCommandStep
@@ -10,6 +8,7 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.project
 import jetbrains.buildServer.configs.kotlin.toId
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
+import jetbrains.buildServer.configs.kotlin.vcs.GitVcsRoot
 import jetbrains.buildServer.configs.kotlin.version
 import shared.Artifacts
 import shared.Params
@@ -22,6 +21,8 @@ import shared.ref
 version = "2025.07"
 
 project {
+
+    vcsRoot(Repository)
 
     params {
         text(Params.TEAMCITY_UI_READONLY, "true")
@@ -84,10 +85,6 @@ project {
 
         collectArtifacts("Artifacts", jarPackage, dockerImage)
     }
-    subProject {
-        this.id("Deploy")
-        this.name = "Deploy"
-    }
 }
 
 fun Project.buildInDocker(
@@ -120,7 +117,7 @@ fun BuildType.buildDockerImage(
     this.name = "Build Docker Image"
 
     vcs {
-        root(DslContext.settingsRoot)
+        root(Repository)
         cleanCheckout = true
     }
 
@@ -170,7 +167,7 @@ fun BuildType.buildOnHost(id: String) {
     this.name = id
 
     vcs {
-        root(DslContext.settingsRoot)
+        root(Repository)
         cleanCheckout = true
     }
 
@@ -209,7 +206,7 @@ fun Project.collectArtifacts(
     this.name = id
 
     vcs {
-        root(DslContext.settingsRoot)
+        root(Repository)
         cleanCheckout = true
     }
 
@@ -226,3 +223,12 @@ fun Project.collectArtifacts(
         pkg => pkg
         """.trimIndent()
 }.also { buildType(it) }
+
+object Repository : GitVcsRoot({
+    name = "maven-reproducible-build"
+    url = "https://github.com/ksbde/maven-reproducible-build.git"
+    branch = "main"
+    branchSpec = "+:refs/heads/*"
+    useTagsAsBranches = true
+    checkoutPolicy = AgentCheckoutPolicy.NO_MIRRORS
+})
