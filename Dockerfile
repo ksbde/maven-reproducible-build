@@ -7,12 +7,17 @@ COPY . .
 
 RUN mvn clean package
 
-
 #openjdk:11-jdk-slim-sid
 FROM openjdk@sha256:f478bbca4a3616cc8abebf9951a0b3cd08d0e010626e08ee1d73eeb36a33e765
 
+RUN useradd -m service
+
 WORKDIR /app
 COPY --from=builder /app/target/*-jar-with-dependencies.jar app.jar
+
+RUN chown -R service:service /app/
+
+USER service
 
 EXPOSE 8080
 

@@ -1,0 +1,33 @@
+# version: '3.1'
+
+
+# Default ${TEAMCITY_VERSION} is defined in .env file
+
+# ./data_dir - TeamCity data directory
+# ./teamcity-server-logs - logs of primary TeamCity server
+# ./agents/agent-1/conf - configuration directory for the first build agent
+
+services:
+  teamcity:
+    image: jetbrains/teamcity-server:${TEAMCITY_VERSION}
+    ports:
+      - "8112:8111"
+    volumes:
+      - teamcity_data_dir:/data/teamcity_server/datadir
+      - teamcity-server-logs:/opt/teamcity/logs
+
+  teamcity-agent-1:
+    privileged: true
+    build:
+      dockerfile: agents/agent-1/agent-1.Dockerfile
+      args:
+        - TEAMCITY_VERSION=${TEAMCITY_VERSION}
+    volumes:
+      - ./agents/agent-1/conf:/data/teamcity_agent/conf
+      - /run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_IN_DOCKER=start
+
+volumes:
+  teamcity_data_dir:
+  teamcity-server-logs:
