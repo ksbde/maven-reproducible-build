@@ -22,22 +22,20 @@ cd teamcity-server; docker compose -f docker-compose.yml up
 
 - Than import all settings from repository url and enable synchronization with VCS repository.
 
-- If you would like to push image into docker registry you need to modify [pipeline](https://github.com/ksbde/maven-reproducible-build/blob/main/.teamcity/settings.kts#L67-L70). 
-And provide correct Docker Hub token with required permission.
+- If you would like to push image into docker registry you need to modify [pipeline](https://github.com/ksbde/maven-reproducible-build/blob/main/.teamcity/settings.kts#L67-L70) and provide correct Docker Hub token with required permission.
 
 You always able to override docker hub repository by modifying next parameters:
     - **docker.registry.repo.host.and.name** parameter
     - and you need to create docker hub repository with name **simple-service**
 
 Keep in mind without these change docker image cannot by pushed in Docker Registry.
+Service will be accessible on <http://localhost:8080/hello>
 
-- For running building and running container locally, just use next command:
+## Run service locally
 
 ```bash
-cd deployments; docker compose -f docker-compose.yml up;
+cd deployments; docker compose -f docker-compose.yml up
 ```
-
-Service will be acceseble on <http://localhost:8080>
 
 ## How to check checksums
 

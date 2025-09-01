@@ -1,7 +1,6 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>demo</groupId>
@@ -11,23 +10,24 @@
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
-        <project.build.outputTimestamp>${git.commit.time}</project.build.outputTimestamp>
+        <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <release.notes.url>https://raw.githubusercontent.com/kubernetes/kubernetes/refs/heads/master/README.md
+        <project.build.outputTimestamp>${git.commit.time}</project.build.outputTimestamp>
+        <release.notes.url>
+            https://raw.githubusercontent.com/kubernetes/kubernetes/refs/heads/master/README.md
         </release.notes.url>
     </properties>
 
     <build>
         <plugins>
+            <!-- Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
-                <configuration>
-                    <source>11</source>
-                    <target>11</target>
-                </configuration>
             </plugin>
+
+            <!-- Git Commit ID Plugin (moved to validate phase) -->
             <plugin>
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
@@ -35,7 +35,7 @@
                 <executions>
                     <execution>
                         <id>retrieve-git-info</id>
-                        <phase>prepare-package</phase>
+                        <phase>validate</phase>
                         <goals>
                             <goal>revision</goal>
                         </goals>
@@ -45,12 +45,14 @@
                     <injectAllReactorProjects>true</injectAllReactorProjects>
                     <runOnlyOnce>true</runOnlyOnce>
                     <skipPoms>false</skipPoms>
-                    <dateFormat>yyyy-MM-dd'T'HH:mm:ss'Z'</dateFormat>
+                    <dateFormat>yyyyMMddHHmmss</dateFormat>
                     <dateFormatTimeZone>UTC</dateFormatTimeZone>
                     <failOnNoGitDirectory>false</failOnNoGitDirectory>
                     <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
                 </configuration>
             </plugin>
+
+            <!-- Jar Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -65,6 +67,8 @@
                     </archive>
                 </configuration>
             </plugin>
+
+            <!-- Assembly Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -89,6 +93,8 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Reproducible Build Plugin -->
             <plugin>
                 <groupId>io.github.zlika</groupId>
                 <artifactId>reproducible-build-maven-plugin</artifactId>
@@ -111,6 +117,8 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Javadoc Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -128,6 +136,8 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- AntRun Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>

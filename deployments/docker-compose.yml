@@ -1,6 +1,6 @@
 services:
   app:
-    image: whitelokki/simple-server:${SERVICE_VERSION}
+    image: whitelokki/simple-service:${SERVICE_VERSION}
     build:
       context: ../
       dockerfile: Dockerfile
