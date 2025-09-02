@@ -1,14 +1,13 @@
 import jetbrains.buildServer.configs.kotlin.BuildType
+import jetbrains.buildServer.configs.kotlin.DslContext
 import jetbrains.buildServer.configs.kotlin.Project
 import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerRegistryConnections
 import jetbrains.buildServer.configs.kotlin.buildSteps.DockerCommandStep
 import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.maven
-import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.project
 import jetbrains.buildServer.configs.kotlin.toId
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
-import jetbrains.buildServer.configs.kotlin.vcs.GitVcsRoot
 import jetbrains.buildServer.configs.kotlin.version
 import shared.Artifacts
 import shared.Params
@@ -21,8 +20,6 @@ import shared.ref
 version = "2025.07"
 
 project {
-
-    vcsRoot(Repository)
 
     params {
         text(Params.TEAMCITY_UI_READONLY, "true")
@@ -76,6 +73,7 @@ project {
                 Params.PACKAGE_NAME,
                 Params.PACKAGE_VERSION,
             )
+
         val dockerImage =
             Artifacts(
                 buildInDocker("Dockerfile", dockerHubId, jarPackage),
@@ -117,7 +115,7 @@ fun BuildType.buildDockerImage(
     this.name = "Build Docker Image"
 
     vcs {
-        root(Repository)
+        root(DslContext.settingsRoot)
         cleanCheckout = true
     }
 
@@ -139,7 +137,6 @@ fun BuildType.buildDockerImage(
                         file {
                             path = "Dockerfile"
                         }
-                    contextDir = "."
                     platform = DockerCommandStep.ImagePlatform.Linux
                     namesAndTags = ref(Params.DOCKER_IMAGE_FULL_PATH)
                 }
@@ -167,7 +164,7 @@ fun BuildType.buildOnHost(id: String) {
     this.name = id
 
     vcs {
-        root(Repository)
+        root(DslContext.settingsRoot)
         cleanCheckout = true
     }
 
@@ -175,22 +172,18 @@ fun BuildType.buildOnHost(id: String) {
         maven {
             name = "Build package"
             goals = "clean package"
-            runnerArgs = "-D${Params.PACKAGE_RELEASE_NOTES_URL}=${ref(Params.PACKAGE_RELEASE_NOTES_URL)}"
-            jdkHome = ref(Params.REQUIRED_JAVA_VERSION)
-        }
-        script {
-            name = "Publish checksums"
-            scriptContent =
+            runnerArgs =
                 """
-                sha256sum */*.jar > checksums_${ref(Params.PACKAGE_VERSION)}.txt
+                -D${'$'}{Params.PACKAGE_RELEASE_NOTES_URL}=${'$'}{ref(Params.PACKAGE_RELEASE_NOTES_URL)}"
                 """.trimIndent()
+            jdkHome = ref(Params.REQUIRED_JAVA_VERSION)
         }
     }
 
     artifactRules =
         """
         **/**.jar
-        **/checksums_*.txt
+        pom.xml
         **/release-notes/** => 
         **/site/** => javadoc_${ref(Params.PACKAGE_VERSION)}.zip
         target/** => release_${ref(Params.PACKAGE_VERSION)}.tar.gz
@@ -206,7 +199,7 @@ fun Project.collectArtifacts(
     this.name = id
 
     vcs {
-        root(Repository)
+        root(DslContext.settingsRoot)
         cleanCheckout = true
     }
 
@@ -223,12 +216,3 @@ fun Project.collectArtifacts(
         pkg => pkg
         """.trimIndent()
 }.also { buildType(it) }
-
-object Repository : GitVcsRoot({
-    name = "maven-reproducible-build"
-    url = "https://github.com/ksbde/maven-reproducible-build.git"
-    branch = "main"
-    branchSpec = "+:refs/heads/*"
-    useTagsAsBranches = true
-    checkoutPolicy = AgentCheckoutPolicy.NO_MIRRORS
-})
