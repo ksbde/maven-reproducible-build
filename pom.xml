@@ -1,21 +1,22 @@
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>demo</groupId>
     <artifactId>simple-service</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
-        <project.build.outputTimestamp>${git.commit.time}</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2025-09-10T18:09:10Z</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <release.notes.url>https://raw.githubusercontent.com/kubernetes/kubernetes/refs/heads/master/README.md
         </release.notes.url>
     </properties>
+
+    <scm>
+        <developerConnection>scm:git:https://github.com/ksbde/reproducible-build.git</developerConnection>
+  </scm>
 
     <build>
         <plugins>
@@ -29,26 +30,15 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <version>4.9.10</version>
-                <executions>
-                    <execution>
-                        <id>retrieve-git-info</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>revision</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.1.1</version>
                 <configuration>
-                    <injectAllReactorProjects>true</injectAllReactorProjects>
-                    <runOnlyOnce>true</runOnlyOnce>
-                    <skipPoms>false</skipPoms>
-                    <dateFormat>yyyy-MM-dd'T'HH:mm:ss'Z'</dateFormat>
-                    <dateFormatTimeZone>UTC</dateFormatTimeZone>
-                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
-                    <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
+                    <projectVersionPolicyId>SemVerVersionPolicy</projectVersionPolicyId>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                    <pushChanges>false</pushChanges>
+                    <username>${env.GIT_USERNAME}</username>
+                    <password>${env.GIT_TOKEN}</password>
                 </configuration>
             </plugin>
             <plugin>
@@ -90,31 +80,12 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>io.github.zlika</groupId>
-                <artifactId>reproducible-build-maven-plugin</artifactId>
-                <version>0.16</version>
-                <executions>
-                    <execution>
-                        <id>strip-jaxb</id>
-                        <goals>
-                            <goal>strip-jaxb</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>strip-jar</id>
-                        <goals>
-                            <goal>strip-jar</goal>
-                        </goals>
-                        <configuration>
-                            <zipDateTime>${git.commit.time}</zipDateTime>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.5.0</version>
+                <configuration>
+                    <notimestamp>true</notimestamp>
+                </configuration>
                 <executions>
                     <execution>
                         <id>generate-javadoc</id>
@@ -138,11 +109,8 @@
                         <phase>generate-resources</phase>
                         <configuration>
                             <target>
-                                <mkdir dir="${project.build.directory}/release-notes"/>
-                                <get src="${release.notes.url}"
-                                     dest="${project.build.directory}/release-notes/latest-release-notes.md"
-                                     verbose="true"
-                                     ignoreerrors="true"/>
+                                <mkdir dir="${project.build.directory}/release-notes" />
+                                <get src="${release.notes.url}" dest="${project.build.directory}/release-notes/latest-release-notes.md" verbose="true" ignoreerrors="true" />
                             </target>
                         </configuration>
                         <goals>
@@ -152,6 +120,5 @@
                 </executions>
             </plugin>
         </plugins>
-        <finalName>simple-service-${project.version}-${git.commit.id.abbrev}</finalName>
     </build>
 </project>

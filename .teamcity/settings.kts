@@ -216,3 +216,7 @@ fun Project.collectArtifacts(
         pkg => pkg
         """.trimIndent()
 }.also { buildType(it) }
+
+// -Darguments="-DskipDeploy"
+//    <scm.username>${env.GIT_USERNAME}</scm.username>
+//    <scm.password>${env.GIT_TOKEN}</scm.password>
