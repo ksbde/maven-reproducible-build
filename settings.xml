@@ -1,0 +1,20 @@
+<settings>
+    <servers>
+        <server>
+            <id>nexus-releases</id>
+            <username>${env.NEXUS_USER}</username>
+            <password>${env.NEXUS_PASS}</password>
+        </server>
+        <server>
+            <id>nexus-snapshots</id>
+            <username>${env.NEXUS_USER}</username>
+            <password>${env.NEXUS_PASS}</password>
+        </server>
+        <server>
+            <id>my-git-creds</id>
+            <username>${env.GIT_USERNAME}</username>
+            <password>${env.GIT_TOKEN}</password>
+        </server>
+    </servers>
+</settings>
+
