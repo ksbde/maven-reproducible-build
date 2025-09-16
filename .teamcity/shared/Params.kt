@@ -11,6 +11,12 @@ class Params {
     companion object {
         const val TEAMCITY_UI_READONLY = "teamcity.ui.settings.readOnly"
 
+        const val NEXUS_USER = "env.NEXUS_USER"
+        const val NEXUS_PASSWORD = "env.NEXUS_PASS"
+
+        const val GIT_USER = "env.GIT_USERNAME"
+        const val GIT_PASS = "env.GIT_TOKEN"
+
         const val PACKAGE_VERSION = "maven.project.version"
         const val PACKAGE_NAME = "maven.project.name"
 
@@ -19,10 +25,15 @@ class Params {
 
         const val DOCKER_IMAGE_NAME = "docker.image.name"
         const val DOCKER_IMAGE_TAG = "docker.image.tag"
+
+        const val DOCKER_REGISTRY_USER = "docker.registry.user"
+        const val DOCKER_REGISTRY_PASS = "docker.registry.password"
+
         const val DOCKER_REGISTRY_REPO_HOST_AND_NAME = "docker.registry.repo.host.and.name"
         const val DOCKER_IMAGE_FULL_PATH = "docker.registry.repo.full.path"
 
         const val TEAMCITY_FORCE_CHECKOUT_ALL_REFS = "teamcity.git.fetchAllHeads"
+        const val TEAMCITY_BUILD_BRANCH_IS_DEFAULT = "teamcity.build.branch.is_default"
     }
 }
 
